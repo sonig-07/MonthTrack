@@ -1,5 +1,5 @@
-# Orbit — Circular Habit Tracker
-# trackme-murex.vercel.app
+# Orbit - Circular Habit Tracker
+## Demo [🌐Try Orbit](https://trackme-murex.vercel.app)
 
 Orbit is a lightweight and interactive habit tracker built using **HTML, CSS, and Vanilla JavaScript**. It replaces traditional checklist-based habit tracking with a unique circular visualization, where each concentric ring represents a habit and each slice represents a day of the month. The application enables users to track daily habits, monitor monthly progress, and manage their data locally without requiring a backend or user account.
 
@@ -16,7 +16,7 @@ Orbit is a lightweight and interactive habit tracker built using **HTML, CSS, an
 * 🎉 Automatic month rollover with snapshot reminder
 * 📱 Responsive design optimized for modern browsers
 
-
+###
   
 
-* Ps- Orbit embraces a fresh-start philosophy. Each month is treated as a dedicated habit-building cycle; users focus on consistency, optionally save a snapshot of their progress, and then begin the next month with a clean slate. This intentional, distraction-free approach encourages users to master their habits in the present rather than dwell on past records
+> **Note:** Orbit embraces a fresh-start philosophy. Each month is treated as a dedicated habit-building cycle; users focus on consistency, optionally save a snapshot of their progress, and then begin the next month with a clean slate. This intentional, distraction-free approach encourages users to master their habits in the present rather than dwell on past records.
