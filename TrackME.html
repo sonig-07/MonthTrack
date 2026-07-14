@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackME</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+  :root{
+    --paper:#EFE8D6;
+    --paper-2:#E5DCC5;
+    --ink:#221F33;
+    --ink-soft:#4B4566;
+    --violet:#4B3F72;
+    --violet-2:#6C5B9E;
+    --amber:#C8863A;
+    --amber-soft:#E7C89A;
+    --line:#7A7052;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top, rgba(255,255,255,0.35), transparent 60%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 16px 60px;
+  }
+
+  .header{
+    width:100%;
+    max-width:560px;
+    text-align:center;
+    margin-bottom:6px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--violet-2);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(28px,7vw,38px);
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .month-display{
+    font-family:'Fraunces',serif;
+    font-weight:400;
+    font-style:italic;
+    font-size:16px;
+    color:var(--ink-soft);
+  }
+
+  .month-banner{
+    width:100%;
+    max-width:420px;
+    margin:16px 0 -4px;
+    padding:14px 16px;
+    border-radius:12px;
+    background:rgba(200,134,58,0.14);
+    border:1px solid var(--amber-soft);
+    text-align:center;
+  }
+  .month-banner-text{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    color:var(--ink);
+    margin-bottom:10px;
+  }
+  .month-banner-actions{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .wheel-wrap{
+    position:relative;
+    width:min(92vw, 520px);
+    aspect-ratio:1/1;
+    margin:22px 0 8px;
+  }
+  svg{width:100%; height:100%; display:block; overflow:visible;}
+
+  .cell{
+    cursor:pointer;
+    stroke:var(--line);
+    stroke-width:1;
+    fill:transparent;
+    transition:fill 0.15s ease, opacity 0.15s ease;
+  }
+  .cell:not(.locked):hover{ fill: rgba(75,63,114,0.12); }
+  .cell.filled{ fill: var(--ring-color, var(--violet)); fill-opacity:0.82; }
+  .cell.locked{ cursor:not-allowed; }
+  .cell.locked:not(.filled){ opacity:0.32; }
+  .cell.locked.filled{ opacity:0.55; }
+
+  .grid-line{ stroke:var(--line); stroke-width:1.4; fill:none; }
+  .day-num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    fill:#000000;
+    text-anchor:middle;
+    dominant-baseline:middle;
+    pointer-events:none;
+  }
+  .day-num-locked{
+    fill: #000000;
+  }
+  .day-num-today{
+    fill: #000000;
+    font-weight: 700;
+  }
+  .center-label{
+    font-family:'Fraunces',serif;
+    font-size:13px;
+    fill:var(--ink);
+    text-anchor:middle;
+    dominant-baseline:middle;
+    pointer-events:none;
+  }
+  .ring-tick{
+    pointer-events:none;
+  }
+  .ring-label-pill{
+    fill: rgba(239,232,214,0.92);
+    stroke: var(--line);
+    stroke-width: 1;
+    pointer-events:none;
+  }
+  .ring-label{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:0.02em;
+    fill:var(--ink);
+    text-anchor:start;
+    dominant-baseline:middle;
+    pointer-events:none;
+  }
+  .task-panel{
+    fill: rgba(239,232,214,0.96);
+    stroke: var(--line);
+    stroke-width: 1.2;
+    pointer-events:none;
+  }
+  .panel-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.16em;
+    fill: var(--ink-soft);
+    text-anchor:middle;
+    pointer-events:none;
+  }
+  .panel-divider{
+    stroke: var(--line);
+    stroke-width: 0.6;
+    stroke-dasharray: 2 2;
+    pointer-events:none;
+  }
+
+  .legend{
+    width:100%;
+    max-width:420px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:18px;
+  }
+  .legend-title{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-size:15px;
+    color:var(--ink-soft);
+    margin:0 0 2px 4px;
+  }
+  .legend-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:rgba(255,255,255,0.35);
+    border:1px solid var(--line);
+    border-left:4px solid var(--row-color, var(--violet));
+    border-radius:8px;
+    padding:8px 10px;
+  }
+  .swatch{
+    width:16px;height:16px;border-radius:50%;
+    flex-shrink:0;
+    border:1px solid rgba(0,0,0,0.15);
+    cursor:pointer;
+    touch-action:none;
+    transition:transform 0.65s linear, box-shadow 0.65s linear;
+  }
+  .swatch.holding{
+    transform:scale(0.55);
+    box-shadow:0 0 0 5px rgba(163,75,95,0.35);
+  }
+  .legend-input{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    font-weight:500;
+    background:transparent;
+    border:none;
+    color:var(--ink);
+    padding:4px 2px;
+  }
+  .legend-input:focus{ outline:none; }
+  .streak{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+    color:#000000;
+    min-width:52px;
+    text-align:right;
+  }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+    width:100%;
+    max-width:420px;
+  }
+  button.add-btn{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.01em;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid var(--violet);
+    background:var(--violet);
+    color:#F4EFE2;
+    cursor:pointer;
+  }
+  button.add-btn:hover{ background:var(--violet-2); }
+  button.add-btn.secondary{
+    background:transparent;
+    color:var(--violet);
+  }
+  button.add-btn.secondary:hover{ background:rgba(75,63,114,0.08); }
+
+  .footnote{
+    margin-top:22px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    max-width:340px;
+    line-height:1.5;
+  }
+
+  .save-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    opacity:0;
+    transition:opacity 0.3s ease;
+    margin-top:6px;
+  }
+  .save-tag.show{ opacity:0.7; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="eyebrow">Habit Tracker</div>
+    <h1>Orbit</h1>
+    <div class="month-display" id="monthDisplay">July 2026</div>
+  </div>
+
+  <div class="month-banner" id="monthBanner" style="display:none">
+    <div class="month-banner-text" id="monthBannerText"></div>
+    <div class="month-banner-actions">
+      <button class="add-btn" id="bannerSaveBtn">📸 Save snapshot &amp; start new month</button>
+      <button class="add-btn secondary" id="bannerSkipBtn">Skip, just start fresh</button>
+    </div>
+  </div>
+
+  <div class="wheel-wrap">
+    <svg id="wheel" viewBox="0 0 600 600"></svg>
+  </div>
+
+  <div class="legend-title">Tasks</div>
+  <div class="legend" id="legend"></div>
+
+  <div class="controls">
+    <button class="add-btn" id="addHabit" style="flex:1">+ Add habit</button>
+  </div>
+
+  <div class="controls">
+    <button class="add-btn secondary" id="exportBtn">↓ Export data</button>
+    <button class="add-btn secondary" id="importBtn">↑ Import data</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none" />
+  </div>
+
+  <div class="controls">
+    <button class="add-btn" id="snapshotBtn" style="flex:1">📸 Download snapshot</button>
+  </div>
+
+  <div class="save-tag" id="saveTag">saved</div>
+
+  <div class="footnote">Each ring is a habit, each of the 31 slices is a day. Tap a cell to mark it done. Only <b>today and yesterday</b> can be marked. Press and hold a habit's color dot to remove it. Data saves to this browser only — use <b>Export</b> to save a backup file, and <b>Import</b> on another browser or device to bring it over.</div>
+
+<script>
+const DAYS = 31;
+const CX = 300, CY = 300;
+const R_INNER = 60;
+const R_OUTER = 260;
+const GAP_DEG = 40; // reserved wedge at the top for the Tasks column — no dates live here
+
+const COLORS = ['#4B3F72', '#C8863A', '#4E7A67', '#A34B5F', '#3E6B8A', '#8A6A3E', '#6C4B7A', '#3E7A5C', '#B4453A', '#5C6B8A'];
+
+let habits = [
+  { name: 'Drink', color: COLORS[0] },
+  { name: 'Read', color: COLORS[1] },
+  { name: 'Exercise', color: COLORS[2] },
+];
+let checks = {}; // key `${habitIndex}-${day}` -> true
+
+function currentMonthLabel(){
+  return new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+}
+let monthLabel = currentMonthLabel();
+
+const svg = document.getElementById('wheel');
+const legend = document.getElementById('legend');
+const monthDisplay = document.getElementById('monthDisplay');
+const saveTag = document.getElementById('saveTag');
+
+function ringRadii(n){
+  // returns array of [innerR, outerR] per ring, ring 0 = innermost
+  const usable = R_OUTER - R_INNER;
+  const step = usable / Math.max(n,1);
+  const arr = [];
+  for(let i=0;i<n;i++){
+    arr.push([R_INNER + i*step, R_INNER + (i+1)*step]);
+  }
+  return arr;
+}
+
+function polar(cx, cy, r, angleDeg){
+  const a = (angleDeg - 90) * Math.PI/180;
+  return [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+}
+
+function sectorPath(cx, cy, r1, r2, a1, a2){
+  const p1 = polar(cx,cy,r1,a1);
+  const p2 = polar(cx,cy,r2,a1);
+  const p3 = polar(cx,cy,r2,a2);
+  const p4 = polar(cx,cy,r1,a2);
+  const largeArc = (a2-a1) > 180 ? 1 : 0;
+  return `M ${p1[0]} ${p1[1]}
+          L ${p2[0]} ${p2[1]}
+          A ${r2} ${r2} 0 ${largeArc} 1 ${p3[0]} ${p3[1]}
+          L ${p4[0]} ${p4[1]}
+          A ${r1} ${r1} 0 ${largeArc} 0 ${p1[0]} ${p1[1]} Z`;
+}
+
+function arcPath(cx, cy, r, a1, a2){
+  const p1 = polar(cx,cy,r,a1);
+  const p2 = polar(cx,cy,r,a2);
+  const largeArc = (a2-a1) > 180 ? 1 : 0;
+  return `M ${p1[0]} ${p1[1]} A ${r} ${r} 0 ${largeArc} 1 ${p2[0]} ${p2[1]}`;
+}
+
+function parseMonthLabel(label){
+  const d = new Date(`1 ${label}`);
+  if(!isNaN(d.getTime())){
+    return { year: d.getFullYear(), month: d.getMonth() };
+  }
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() };
+}
+
+// a day is lockable if it's in the future, or more than 48 hours in the past
+function computeLockedDays(){
+  const { year, month } = parseMonthLabel(monthLabel);
+  const now = new Date();
+  const locked = {};
+  let todayDay = null;
+  for(let day=1; day<=DAYS; day++){
+    const cellDate = new Date(year, month, day, 0, 0, 0, 0);
+    const diffHours = (now - cellDate) / (1000*60*60);
+    locked[day] = diffHours < 0 || diffHours > 48;
+    if(diffHours >= 0 && diffHours < 24) todayDay = day;
+  }
+  return { locked, todayDay };
+}
+
+function render(){
+  svg.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  const radii = ringRadii(habits.length);
+  const anglePer = (360 - GAP_DEG) / DAYS;
+  const dayStartOffset = GAP_DEG / 2; // day 1 begins right after the reserved gap
+  const { locked: lockedDays, todayDay } = computeLockedDays();
+
+  // center label
+  const centerCircle = document.createElementNS(ns,'circle');
+  centerCircle.setAttribute('cx', CX);
+  centerCircle.setAttribute('cy', CY);
+  centerCircle.setAttribute('r', R_INNER - 4);
+  centerCircle.setAttribute('fill', 'none');
+  centerCircle.setAttribute('class','grid-line');
+  svg.appendChild(centerCircle);
+
+  const clabel = document.createElementNS(ns,'text');
+  clabel.setAttribute('x', CX);
+  clabel.setAttribute('y', CY);
+  clabel.setAttribute('class','center-label');
+  clabel.textContent = monthLabel;
+  svg.appendChild(clabel);
+
+  // draw cells ring by ring
+  habits.forEach((habit, hIdx) => {
+    const [r1, r2] = radii[hIdx];
+    for(let day=1; day<=DAYS; day++){
+      const a1 = dayStartOffset + (day-1)*anglePer;
+      const a2 = dayStartOffset + day*anglePer;
+      const path = document.createElementNS(ns,'path');
+      const key = `${hIdx}-${day}`;
+      const isFilled = !!checks[key];
+      const isLocked = lockedDays[day];
+      path.setAttribute('d', sectorPath(CX,CY,r1,r2,a1,a2));
+      path.setAttribute('class', 'cell' + (isFilled ? ' filled':'') + (isLocked ? ' locked':''));
+      path.style.setProperty('--ring-color', habit.color);
+      path.dataset.key = key;
+      if(!isLocked){
+        path.addEventListener('click', () => {
+          checks[key] = !checks[key];
+          render();
+          persist();
+        });
+      }
+      svg.appendChild(path);
+    }
+  });
+
+  // habit names live in the reserved gap panel — drawn last, see below,
+  // so they never sit on top of a date cell
+
+  // radial day divider lines (drawn on top for crispness) + day numbers
+  for(let day=1; day<=DAYS+1; day++){
+    const a = dayStartOffset + (day-1)*anglePer;
+    const p1 = polar(CX,CY,R_INNER,a);
+    const p2 = polar(CX,CY,R_OUTER,a);
+    const line = document.createElementNS(ns,'line');
+    line.setAttribute('x1',p1[0]); line.setAttribute('y1',p1[1]);
+    line.setAttribute('x2',p2[0]); line.setAttribute('y2',p2[1]);
+    line.setAttribute('class','grid-line');
+    svg.appendChild(line);
+
+    if(day <= DAYS){
+      const midAngle = a + anglePer/2;
+      const labelPos = polar(CX,CY,R_OUTER + 16, midAngle);
+      const text = document.createElementNS(ns,'text');
+      text.setAttribute('x', labelPos[0]);
+      text.setAttribute('y', labelPos[1]);
+      let cls = 'day-num';
+      if(lockedDays[day]) cls += ' day-num-locked';
+      if(day === todayDay) cls += ' day-num-today';
+      text.setAttribute('class', cls);
+      text.textContent = day;
+      svg.appendChild(text);
+    }
+  }
+
+  // outer + inner boundary arcs — confined to the day range so they
+  // stop cleanly at the edges of the reserved gap panel
+  const outerArc = document.createElementNS(ns,'path');
+  outerArc.setAttribute('d', arcPath(CX,CY,R_OUTER, dayStartOffset, 360-dayStartOffset));
+  outerArc.setAttribute('class','grid-line');
+  svg.appendChild(outerArc);
+
+  const innerArc = document.createElementNS(ns,'path');
+  innerArc.setAttribute('d', arcPath(CX,CY,R_INNER, dayStartOffset, 360-dayStartOffset));
+  innerArc.setAttribute('class','grid-line');
+  svg.appendChild(innerArc);
+
+  // the dedicated Tasks panel — a flat tab sitting in the reserved gap,
+  // completely separate from the date cells
+  const panelA1 = -(GAP_DEG/2) - 1;
+  const panelA2 = (GAP_DEG/2) + 1;
+  const panel = document.createElementNS(ns,'path');
+  panel.setAttribute('d', sectorPath(CX,CY, R_INNER, R_OUTER+14, panelA1, panelA2));
+  panel.setAttribute('class','task-panel');
+  svg.appendChild(panel);
+
+  const panelTitle = document.createElementNS(ns,'text');
+  panelTitle.setAttribute('x', CX);
+  panelTitle.setAttribute('y', CY - R_OUTER - 2);
+  panelTitle.setAttribute('class','panel-title');
+  panelTitle.textContent = 'TASKS';
+  svg.appendChild(panelTitle);
+
+  habits.forEach((habit, hIdx) => {
+    const [r1, r2] = radii[hIdx];
+    const midR = (r1 + r2) / 2;
+    const thickness = r2 - r1;
+    const y = CY - midR;
+
+    // the wedge narrows toward the center, so each row's usable width
+    // is derived from its own radius rather than a fixed pixel value
+    const halfWidth = Math.max(14, midR * Math.sin((GAP_DEG/2 - 1) * Math.PI/180));
+    const fontSize = Math.max(7, Math.min(11.5, thickness * 0.44, halfWidth * 0.42));
+
+    const divider = document.createElementNS(ns,'line');
+    divider.setAttribute('x1', CX - halfWidth); divider.setAttribute('y1', y + thickness/2);
+    divider.setAttribute('x2', CX + halfWidth); divider.setAttribute('y2', y + thickness/2);
+    divider.setAttribute('class','panel-divider');
+    svg.appendChild(divider);
+
+    const tick = document.createElementNS(ns,'rect');
+    tick.setAttribute('x', CX - halfWidth + 3);
+    tick.setAttribute('y', y - 4);
+    tick.setAttribute('width', 4);
+    tick.setAttribute('height', 8);
+    tick.setAttribute('rx', 1.2);
+    tick.setAttribute('fill', habit.color);
+    svg.appendChild(tick);
+
+    const text = document.createElementNS(ns,'text');
+    text.setAttribute('x', CX - halfWidth + 11);
+    text.setAttribute('y', y);
+    text.setAttribute('class','ring-label');
+    text.setAttribute('font-size', fontSize);
+    text.textContent = habit.name;
+    svg.appendChild(text);
+  });
+
+  renderLegend();
+}
+
+function streakCount(hIdx){
+  let count = 0;
+  for(let day=1; day<=DAYS; day++){
+    if(checks[`${hIdx}-${day}`]) count++;
+  }
+  return count;
+}
+
+function renderLegend(){
+  legend.innerHTML = '';
+  habits.forEach((habit, i) => {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.style.setProperty('--row-color', habit.color);
+
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = habit.color;
+    sw.title = 'Press and hold to remove this habit';
+
+    let holdTimer = null;
+    const HOLD_MS = 650;
+    const startHold = (e) => {
+      e.preventDefault();
+      sw.classList.add('holding');
+      holdTimer = setTimeout(() => {
+        sw.classList.remove('holding');
+        habits.splice(i, 1);
+        // remap checks
+        const newChecks = {};
+        Object.keys(checks).forEach(k => {
+          const [hi, day] = k.split('-').map(Number);
+          if(hi === i) return;
+          const newHi = hi > i ? hi - 1 : hi;
+          newChecks[`${newHi}-${day}`] = checks[k];
+        });
+        checks = newChecks;
+        if(navigator.vibrate) navigator.vibrate(30);
+        render();
+        persist();
+      }, HOLD_MS);
+    };
+    const cancelHold = () => {
+      clearTimeout(holdTimer);
+      sw.classList.remove('holding');
+    };
+    sw.addEventListener('pointerdown', startHold);
+    sw.addEventListener('pointerup', cancelHold);
+    sw.addEventListener('pointerleave', cancelHold);
+    sw.addEventListener('pointercancel', cancelHold);
+
+    const input = document.createElement('input');
+    input.className = 'legend-input';
+    input.value = habit.name;
+    input.addEventListener('input', (e) => {
+      habits[i].name = e.target.value;
+      persist();
+    });
+
+    const streak = document.createElement('div');
+    streak.className = 'streak';
+    streak.textContent = `${streakCount(i)}/${DAYS}`;
+
+    row.appendChild(sw);
+    row.appendChild(input);
+    row.appendChild(streak);
+    legend.appendChild(row);
+  });
+}
+
+document.getElementById('addHabit').addEventListener('click', () => {
+  const color = COLORS[habits.length % COLORS.length];
+  habits.push({ name: 'New habit', color });
+  render();
+  persist();
+});
+
+document.getElementById('snapshotBtn').addEventListener('click', () => downloadSnapshot());
+
+function downloadSnapshot(filenamePrefix){
+  filenamePrefix = filenamePrefix || 'orbit-snapshot';
+  // inline the styles the SVG relies on, since a standalone/serialized SVG
+  // has no access to this page's <style> block
+  const svgStyles = `
+    .cell{stroke:#B8AE93;stroke-width:1;fill:transparent;}
+    .cell.filled{fill:var(--ring-color,#4B3F72);fill-opacity:0.82;}
+    .cell.locked:not(.filled){opacity:0.32;}
+    .cell.locked.filled{opacity:0.55;}
+    .grid-line{stroke:#B8AE93;stroke-width:1;fill:none;}
+    .day-num{font-family:monospace;font-size:10.5px;fill:#000000;text-anchor:middle;dominant-baseline:middle;}
+    .day-num-locked{fill:#000000;}
+    .day-num-today{fill:#000000;font-weight:700;}
+    .center-label{font-family:serif;font-size:13px;fill:#221F33;text-anchor:middle;dominant-baseline:middle;}
+    .task-panel{fill:rgba(239,232,214,0.96);stroke:#B8AE93;stroke-width:1.2;}
+    .panel-title{font-family:monospace;font-size:10px;letter-spacing:0.16em;fill:#4B4566;text-anchor:middle;}
+    .panel-divider{stroke:#B8AE93;stroke-width:0.6;stroke-dasharray:2 2;}
+    .ring-label{font-family:sans-serif;font-weight:600;font-size:12px;letter-spacing:0.02em;fill:#221F33;text-anchor:start;dominant-baseline:middle;}
+  `;
+
+  const svgEl = document.getElementById('wheel');
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('width', '700');
+  clone.setAttribute('height', '700');
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const styleEl = document.createElementNS('http://www.w3.org/2000/svg','style');
+  styleEl.textContent = svgStyles;
+  clone.insertBefore(styleEl, clone.firstChild);
+
+  const svgData = new XMLSerializer().serializeToString(clone);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const wheelSize = 900;
+      const padding = 40;
+      const titleH = 70;
+      const rowH = 34;
+      const legendH = habits.length * rowH + 46;
+      const canvas = document.createElement('canvas');
+      canvas.width = wheelSize + padding * 2;
+      canvas.height = titleH + wheelSize + legendH + padding;
+      const ctx = canvas.getContext('2d');
+
+      // background
+      ctx.fillStyle = '#EFE8D6';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // title
+      ctx.fillStyle = '#221F33';
+      ctx.font = '600 30px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Orbit — ' + monthLabel, canvas.width / 2, padding + 30);
+
+      // wheel
+      ctx.drawImage(img, padding, titleH, wheelSize, wheelSize);
+
+      // task list
+      let y = titleH + wheelSize + 30;
+      ctx.textAlign = 'left';
+      ctx.font = '700 13px sans-serif';
+      ctx.fillStyle = '#6C5B9E';
+      ctx.fillText('TASKS', padding, y);
+      y += 26;
+      habits.forEach((h, i) => {
+        ctx.fillStyle = h.color;
+        ctx.beginPath();
+        ctx.arc(padding + 8, y - 5, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#221F33';
+        ctx.font = '600 16px sans-serif';
+        ctx.fillText(h.name, padding + 24, y);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#000000';
+        ctx.font = '600 13px monospace';
+        ctx.fillText(`${streakCount(i)}/${DAYS}`, canvas.width - padding, y);
+
+        ctx.textAlign = 'left';
+        y += rowH;
+      });
+
+      // footer
+      ctx.fillStyle = '#8a8368';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('exported ' + new Date().toLocaleString(), canvas.width / 2, canvas.height - 14);
+
+      URL.revokeObjectURL(svgUrl);
+
+      canvas.toBlob((blob) => {
+        const dlUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeMonth = (monthLabel || 'orbit').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        a.href = dlUrl;
+        a.download = `${filenamePrefix}-${safeMonth}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(dlUrl);
+        resolve();
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(svgUrl);
+      alert("Couldn't generate the snapshot. Please try again.");
+      reject(new Error('snapshot failed'));
+    };
+    img.src = svgUrl;
+  });
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const payload = JSON.stringify({ habits, checks, monthLabel }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeMonth = (monthLabel || 'orbit').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.href = url;
+  a.download = `orbit-tracker-${safeMonth}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+const importFileInput = document.getElementById('importFile');
+document.getElementById('importBtn').addEventListener('click', () => importFileInput.click());
+
+importFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = JSON.parse(evt.target.result);
+      if(data.habits && data.habits.length) habits = data.habits;
+      if(data.checks) checks = data.checks;
+      if(data.monthLabel){ monthLabel = data.monthLabel; monthDisplay.textContent = monthLabel; }
+      render();
+      persist();
+      saveTag.textContent = 'imported';
+      saveTag.classList.add('show');
+      setTimeout(()=> saveTag.classList.remove('show'), 1500);
+    }catch(err){
+      alert("Couldn't read that file — make sure it's a JSON export from this tracker.");
+    }
+  };
+  reader.readAsText(file);
+  importFileInput.value = ''; // allow importing the same file again later
+});
+
+let saveTimeout;
+const STORAGE_KEY = 'orbit-tracker';
+const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage;
+
+async function persist(){
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    const payload = JSON.stringify({ habits, checks, monthLabel });
+    try{
+      if(hasClaudeStorage){
+        await window.storage.set(STORAGE_KEY, payload, false);
+      } else {
+        localStorage.setItem(STORAGE_KEY, payload);
+      }
+      saveTag.textContent = 'saved';
+      saveTag.classList.add('show');
+      setTimeout(()=> saveTag.classList.remove('show'), 1200);
+    }catch(e){
+      console.error('save failed', e);
+      saveTag.textContent = 'save failed';
+      saveTag.classList.add('show');
+    }
+  }, 300);
+}
+
+const monthBanner = document.getElementById('monthBanner');
+const monthBannerText = document.getElementById('monthBannerText');
+const bannerSaveBtn = document.getElementById('bannerSaveBtn');
+const bannerSkipBtn = document.getElementById('bannerSkipBtn');
+
+function startNewMonth(){
+  const live = currentMonthLabel();
+  checks = {};
+  monthLabel = live;
+  monthDisplay.textContent = monthLabel;
+  monthBanner.style.display = 'none';
+  render();
+  persist();
+}
+
+async function load(){
+  try{
+    let saved = null;
+    if(hasClaudeStorage){
+      const result = await window.storage.get(STORAGE_KEY, false);
+      if(result && result.value) saved = JSON.parse(result.value);
+    } else {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) saved = JSON.parse(raw);
+    }
+    if(saved){
+      if(saved.habits && saved.habits.length) habits = saved.habits;
+      if(saved.checks) checks = saved.checks;
+      if(saved.monthLabel) monthLabel = saved.monthLabel;
+
+      // if the real calendar month has moved on since the last save, show the
+      // finished month with a banner offering to snapshot it before resetting
+      const live = currentMonthLabel();
+      if(saved.monthLabel && saved.monthLabel !== live){
+        monthBannerText.textContent = `🎉 ${saved.monthLabel} is complete!`;
+        monthBanner.style.display = 'block';
+
+        bannerSaveBtn.onclick = async () => {
+          bannerSaveBtn.disabled = true;
+          bannerSaveBtn.textContent = 'Saving…';
+          try{
+            await downloadSnapshot('orbit-recap');
+          }catch(e){ /* alert already shown inside downloadSnapshot */ }
+          startNewMonth();
+        };
+        bannerSkipBtn.onclick = () => startNewMonth();
+      }
+    }
+  }catch(e){
+    // no saved data yet, use defaults
+  }
+  monthDisplay.textContent = monthLabel;
+  render();
+}
+
+load();
+</script>
+</body>
+</html>
