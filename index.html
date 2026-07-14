@@ -144,7 +144,7 @@
     font-size:12px;
     letter-spacing:0.02em;
     fill:var(--ink);
-    text-anchor:start;
+    text-anchor:middle;
     dominant-baseline:middle;
     pointer-events:none;
   }
@@ -524,17 +524,20 @@ function render(){
     divider.setAttribute('class','panel-divider');
     svg.appendChild(divider);
 
-    const tick = document.createElementNS(ns,'rect');
-    tick.setAttribute('x', CX - halfWidth + 3);
-    tick.setAttribute('y', y - 4);
-    tick.setAttribute('width', 4);
-    tick.setAttribute('height', 8);
-    tick.setAttribute('rx', 1.2);
+    // estimate text width so the color tick can sit just left of the
+    // now-centered label, like a bullet point
+    const estTextWidth = habit.name.length * fontSize * 0.58;
+    const tickX = CX - estTextWidth/2 - 8;
+
+    const tick = document.createElementNS(ns,'circle');
+    tick.setAttribute('cx', tickX);
+    tick.setAttribute('cy', y);
+    tick.setAttribute('r', Math.max(2.5, fontSize * 0.28));
     tick.setAttribute('fill', habit.color);
     svg.appendChild(tick);
 
     const text = document.createElementNS(ns,'text');
-    text.setAttribute('x', CX - halfWidth + 11);
+    text.setAttribute('x', CX);
     text.setAttribute('y', y);
     text.setAttribute('class','ring-label');
     text.setAttribute('font-size', fontSize);
@@ -641,7 +644,7 @@ function downloadSnapshot(filenamePrefix){
     .task-panel{fill:rgba(239,232,214,0.96);stroke:#B8AE93;stroke-width:1.2;}
     .panel-title{font-family:monospace;font-size:10px;letter-spacing:0.16em;fill:#4B4566;text-anchor:middle;}
     .panel-divider{stroke:#B8AE93;stroke-width:0.6;stroke-dasharray:2 2;}
-    .ring-label{font-family:sans-serif;font-weight:600;font-size:12px;letter-spacing:0.02em;fill:#221F33;text-anchor:start;dominant-baseline:middle;}
+    .ring-label{font-family:sans-serif;font-weight:600;font-size:12px;letter-spacing:0.02em;fill:#221F33;text-anchor:middle;dominant-baseline:middle;}
   `;
 
   const svgEl = document.getElementById('wheel');
