@@ -263,6 +263,15 @@
     line-height:1.5;
   }
 
+  .page-footer{
+    width:100%;
+    text-align:right;
+    padding:10px 16px 0;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+
   .save-tag{
     font-family:'IBM Plex Mono',monospace;
     font-size:10px;
@@ -314,7 +323,7 @@
   <div class="save-tag" id="saveTag">saved</div>
 
   <div class="footnote">Each ring is a habit, each of the 31 slices is a day. Tap a cell to mark it done. Only <b>today and yesterday</b> can be marked. Press and hold a habit's color dot to remove it. Data saves to this browser only — use <b>Export</b> to save a backup file, and <b>Import</b> on another browser or device to bring it over.</div>
-
+  <div class="page-footer">© sonig07</div>
 <script>
 const DAYS = 31;
 const CX = 300, CY = 300;
@@ -325,9 +334,9 @@ const GAP_DEG = 40; // reserved wedge at the top for the Tasks column — no dat
 const COLORS = ['#4B3F72', '#C8863A', '#4E7A67', '#A34B5F', '#3E6B8A', '#8A6A3E', '#6C4B7A', '#3E7A5C', '#B4453A', '#5C6B8A'];
 
 let habits = [
-  { name: 'Drink', color: COLORS[0] },
-  { name: 'Read', color: COLORS[1] },
-  { name: 'Exercise', color: COLORS[2] },
+  { name: '3L Water', color: COLORS[0] },
+  { name: 'Workout', color: COLORS[1] },
+  { name: 'Read', color: COLORS[2] },
 ];
 let checks = {}; // key `${habitIndex}-${day}` -> true
 
@@ -532,7 +541,7 @@ function render(){
     svg.appendChild(tick);
 
     const text = document.createElementNS(ns,'text');
-    text.setAttribute('x', CX - halfWidth + 11);
+    text.setAttribute('x', CX - halfWidth + 14);
     text.setAttribute('y', y);
     text.setAttribute('class','ring-label');
     text.setAttribute('font-size', fontSize);
@@ -652,3 +661,212 @@ function downloadSnapshot(filenamePrefix){
   clone.insertBefore(styleEl, clone.firstChild);
 
   const svgData = new XMLSerializer().serializeToString(clone);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const wheelSize = 900;
+      const padding = 40;
+      const titleH = 70;
+      const rowH = 34;
+      const legendH = habits.length * rowH + 46;
+      const canvas = document.createElement('canvas');
+      canvas.width = wheelSize + padding * 2;
+      canvas.height = titleH + wheelSize + legendH + padding;
+      const ctx = canvas.getContext('2d');
+
+      // background
+      ctx.fillStyle = '#EFE8D6';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // title
+      ctx.fillStyle = '#221F33';
+      ctx.font = '600 30px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Orbit — ' + monthLabel, canvas.width / 2, padding + 30);
+
+      // wheel
+      ctx.drawImage(img, padding, titleH, wheelSize, wheelSize);
+
+      // task list
+      let y = titleH + wheelSize + 30;
+      ctx.textAlign = 'left';
+      ctx.font = '700 13px sans-serif';
+      ctx.fillStyle = '#6C5B9E';
+      ctx.fillText('TASKS', padding, y);
+      y += 26;
+      habits.forEach((h, i) => {
+        ctx.fillStyle = h.color;
+        ctx.beginPath();
+        ctx.arc(padding + 8, y - 5, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#221F33';
+        ctx.font = '600 16px sans-serif';
+        ctx.fillText(h.name, padding + 24, y);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#000000';
+        ctx.font = '600 13px monospace';
+        ctx.fillText(`${streakCount(i)}/${DAYS}`, canvas.width - padding, y);
+
+        ctx.textAlign = 'left';
+        y += rowH;
+      });
+
+      // footer
+      ctx.fillStyle = '#8a8368';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('exported ' + new Date().toLocaleString(), canvas.width / 2, canvas.height - 14);
+
+      URL.revokeObjectURL(svgUrl);
+
+      canvas.toBlob((blob) => {
+        const dlUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeMonth = (monthLabel || 'orbit').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        a.href = dlUrl;
+        a.download = `${filenamePrefix}-${safeMonth}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(dlUrl);
+        resolve();
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(svgUrl);
+      alert("Couldn't generate the snapshot. Please try again.");
+      reject(new Error('snapshot failed'));
+    };
+    img.src = svgUrl;
+  });
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const payload = JSON.stringify({ habits, checks, monthLabel }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeMonth = (monthLabel || 'orbit').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.href = url;
+  a.download = `orbit-tracker-${safeMonth}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+const importFileInput = document.getElementById('importFile');
+document.getElementById('importBtn').addEventListener('click', () => importFileInput.click());
+
+importFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = JSON.parse(evt.target.result);
+      if(data.habits && data.habits.length) habits = data.habits;
+      if(data.checks) checks = data.checks;
+      if(data.monthLabel){ monthLabel = data.monthLabel; monthDisplay.textContent = monthLabel; }
+      render();
+      persist();
+      saveTag.textContent = 'imported';
+      saveTag.classList.add('show');
+      setTimeout(()=> saveTag.classList.remove('show'), 1500);
+    }catch(err){
+      alert("Couldn't read that file — make sure it's a JSON export from this tracker.");
+    }
+  };
+  reader.readAsText(file);
+  importFileInput.value = ''; // allow importing the same file again later
+});
+
+let saveTimeout;
+const STORAGE_KEY = 'orbit-tracker';
+const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage;
+
+async function persist(){
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    const payload = JSON.stringify({ habits, checks, monthLabel });
+    try{
+      if(hasClaudeStorage){
+        await window.storage.set(STORAGE_KEY, payload, false);
+      } else {
+        localStorage.setItem(STORAGE_KEY, payload);
+      }
+      saveTag.textContent = 'saved';
+      saveTag.classList.add('show');
+      setTimeout(()=> saveTag.classList.remove('show'), 1200);
+    }catch(e){
+      console.error('save failed', e);
+      saveTag.textContent = 'save failed';
+      saveTag.classList.add('show');
+    }
+  }, 300);
+}
+
+const monthBanner = document.getElementById('monthBanner');
+const monthBannerText = document.getElementById('monthBannerText');
+const bannerSaveBtn = document.getElementById('bannerSaveBtn');
+const bannerSkipBtn = document.getElementById('bannerSkipBtn');
+
+function startNewMonth(){
+  const live = currentMonthLabel();
+  checks = {};
+  monthLabel = live;
+  monthDisplay.textContent = monthLabel;
+  monthBanner.style.display = 'none';
+  render();
+  persist();
+}
+
+async function load(){
+  try{
+    let saved = null;
+    if(hasClaudeStorage){
+      const result = await window.storage.get(STORAGE_KEY, false);
+      if(result && result.value) saved = JSON.parse(result.value);
+    } else {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) saved = JSON.parse(raw);
+    }
+    if(saved){
+      if(saved.habits && saved.habits.length) habits = saved.habits;
+      if(saved.checks) checks = saved.checks;
+      if(saved.monthLabel) monthLabel = saved.monthLabel;
+
+      // if the real calendar month has moved on since the last save, show the
+      // finished month with a banner offering to snapshot it before resetting
+      const live = currentMonthLabel();
+      if(saved.monthLabel && saved.monthLabel !== live){
+        monthBannerText.textContent = `🎉 ${saved.monthLabel} is complete!`;
+        monthBanner.style.display = 'block';
+
+        bannerSaveBtn.onclick = async () => {
+          bannerSaveBtn.disabled = true;
+          bannerSaveBtn.textContent = 'Saving…';
+          try{
+            await downloadSnapshot('orbit-recap');
+          }catch(e){ /* alert already shown inside downloadSnapshot */ }
+          startNewMonth();
+        };
+        bannerSkipBtn.onclick = () => startNewMonth();
+      }
+    }
+  }catch(e){
+    // no saved data yet, use defaults
+  }
+  monthDisplay.textContent = monthLabel;
+  render();
+}
+
+load();
+</script>
+</body>
+</html>
